@@ -1,13 +1,16 @@
 package elblog
 
 import (
+	"bufio"
 	"bytes"
+	"io"
 	"net"
 	"strconv"
 	"time"
 	"unicode/utf8"
 )
 
+// Log ...
 type Log struct {
 	Time                             time.Time
 	Name                             string
@@ -24,6 +27,7 @@ type Log struct {
 	SSLProtocol                      string
 }
 
+// Parse ...
 func Parse(b []byte) (log *Log, err error) {
 	var (
 		adv, i int
@@ -170,4 +174,50 @@ func scan(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	}
 	// Request more data.
 	return start, nil, nil
+}
+
+// Decoder ...
+type Decoder struct {
+	s     *bufio.Scanner
+	token []byte
+}
+
+// NewDecoder allocates new Decoder object for given input.
+func NewDecoder(r io.Reader) *Decoder {
+	s := bufio.NewScanner(r)
+	s.Split(bufio.ScanLines)
+
+	return &Decoder{
+		s: s,
+	}
+}
+
+// Decode scans input and parse into Log. It can return EOF if underlying scanner Scan method returns false.
+func (d *Decoder) Decode() (*Log, error) {
+	if d.token != nil {
+		log, err := Parse(d.token)
+		d.token = nil
+		if err != nil {
+			return nil, err
+		}
+		return log, nil
+	}
+	ok := d.s.Scan()
+	if !ok {
+		return nil, io.EOF
+	}
+	return Parse(d.s.Bytes())
+}
+
+// More return true if token is not empty or underlying scanner Scan method will return true.
+func (d *Decoder) More() bool {
+	if d.token != nil {
+		return true
+	}
+
+	ok := d.s.Scan()
+	if ok {
+		d.token = d.s.Bytes()
+	}
+	return ok
 }

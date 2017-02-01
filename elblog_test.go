@@ -2,18 +2,15 @@ package elblog_test
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
-	"os"
-
-	"reflect"
-	"testing"
-
 	"net"
 	"net/http"
-	"time"
-
-	"bytes"
+	"os"
+	"reflect"
 	"runtime"
+	"testing"
+	"time"
 
 	"github.com/piotrkowalczuk/elblog"
 )
@@ -99,6 +96,23 @@ func TestParse(t *testing.T) {
 	}
 }
 
+func TestDecoder_Decode(t *testing.T) {
+	expected := 100
+	buf := buffor(expected)
+	dec := elblog.NewDecoder(buf)
+	got := make([]*elblog.Log, 0, expected)
+	for dec.More() {
+		log, err := dec.Decode()
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err.Error())
+		}
+		got = append(got, log)
+	}
+	if len(got) != expected {
+		t.Errorf("wrong length, expected %d but got %d", expected, len(got))
+	}
+}
+
 var benchLog elblog.Log
 
 func BenchmarkParse(b *testing.B) {
@@ -145,7 +159,7 @@ func BenchmarkParse_NonParallel(b *testing.B) {
 
 func BenchmarkParse_Parallel(b *testing.B) {
 	buf := buffor(100000)
-	parallelism := runtime.NumCPU()*10
+	parallelism := runtime.NumCPU() * 10
 	b.ResetTimer()
 
 	for n := 0; n <= b.N; n++ {
