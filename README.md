@@ -1,6 +1,7 @@
 # elblog [![GoDoc](https://godoc.org/github.com/piotrkowalczuk/elblog?status.svg)](https://godoc.org/github.com/piotrkowalczuk/elblog)
 
-[![Build Status](https://travis-ci.org/piotrkowalczuk/elblog.svg?branch=master)](https://travis-ci.org/piotrkowalczuk/elblog)
+[![Build Status](https://travis-ci.org/piotrkowalczuk/elblog.svg?branch=master)](https://travis-ci.org/piotrkowalczuk/elblog)&nbsp;[![codecov](https://codecov.io/gh/piotrkowalczuk/elblog/branch/master/graph/badge.svg)](https://codecov.io/gh/piotrkowalczuk/elblog)
+
 
 Library helps to parse [ELB](http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/access-log-collection.html) logs. 
 
