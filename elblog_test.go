@@ -21,11 +21,10 @@ func Example() {
 		fmt.Println(err.Error())
 		os.Exit(1)
 	}
-	scanner := bufio.NewScanner(file)
-	scanner.Split(bufio.ScanLines)
+	dec := elblog.NewDecoder(file)
 
-	if scanner.Scan() {
-		log, err := elblog.Parse(scanner.Bytes())
+	if dec.More() {
+		log, err := dec.Decode()
 		if err != nil {
 			fmt.Println(err.Error())
 			os.Exit(1)
