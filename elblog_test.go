@@ -12,6 +12,9 @@ import (
 	"net/http"
 	"time"
 
+	"bytes"
+	"runtime"
+
 	"github.com/piotrkowalczuk/elblog"
 )
 
@@ -106,5 +109,94 @@ func BenchmarkParse(b *testing.B) {
 			b.Fatalf("unexpected error: %s", err.Error())
 		}
 		benchLog = *log
+	}
+}
+
+func buffor(max int) *bytes.Buffer {
+	buf := bytes.NewBuffer(nil)
+	for i := 0; i < max; i++ {
+		buf.WriteString(`2015-05-13T23:39:43.945958Z my-loadbalancer 192.168.131.39:2817 10.0.0.1:80 0.000073 0.001048 0.000057 200 200 0 29 "GET http://www.example.com:80/ HTTP/1.1" "curl/7.38.0" - -`)
+		buf.WriteRune('\n')
+	}
+	return buf
+}
+
+func BenchmarkParse_NonParallel(b *testing.B) {
+	buf := buffor(100000)
+	b.ResetTimer()
+
+	for n := 0; n <= b.N; n++ {
+		b.StopTimer()
+		buff := *buf
+		scanner := bufio.NewScanner(&buff)
+		scanner.Split(bufio.ScanLines)
+		b.StartTimer()
+
+		if scanner.Scan() {
+			log, err := elblog.Parse(scanner.Bytes())
+			if err != nil {
+				b.Fatalf("unexpected error: %s", err.Error())
+			}
+
+			benchLog = *log
+		}
+	}
+}
+
+func BenchmarkParse_Parallel(b *testing.B) {
+	buf := buffor(100000)
+	parallelism := runtime.NumCPU()*10
+	b.ResetTimer()
+
+	for n := 0; n <= b.N; n++ {
+		b.StopTimer()
+
+		buff := *buf
+		scanner := bufio.NewScanner(&buff)
+		scanner.Split(bufio.ScanLines)
+
+		in := make(chan []byte)
+		out := make(chan *elblog.Log)
+		done := make(chan error, parallelism+1)
+
+		for i := 0; i < parallelism; i++ {
+			go func(in <-chan []byte, out chan<- *elblog.Log, done chan<- error) {
+				for b := range in {
+					log, err := elblog.Parse(b)
+					if err != nil {
+						done <- err
+					}
+					out <- log
+				}
+				done <- nil
+			}(in, out, done)
+		}
+
+		go func(out <-chan *elblog.Log, done chan<- error) {
+			for log := range out {
+				benchLog = *log
+			}
+			done <- nil
+		}(out, done)
+
+		b.StartTimer()
+
+		if scanner.Scan() {
+			in <- scanner.Bytes()
+		}
+		close(in)
+
+		kill := 0
+	DoneLoop:
+		for err := range done {
+			if err != nil {
+				b.Fatalf("unexpected error: %s", err.Error())
+			}
+			kill++
+			if kill == parallelism {
+				close(out)
+				break DoneLoop
+			}
+		}
 	}
 }
