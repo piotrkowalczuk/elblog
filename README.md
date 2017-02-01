@@ -1,5 +1,7 @@
 # elblog [![GoDoc](https://godoc.org/github.com/piotrkowalczuk/elblog?status.svg)](https://godoc.org/github.com/piotrkowalczuk/elblog)
 
+[![Build Status](https://travis-ci.org/piotrkowalczuk/elblog.svg?branch=master)](https://travis-ci.org/piotrkowalczuk/elblog)
+
 Library helps to parse [ELB](http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/access-log-collection.html) logs. 
 
 Elastic Load Balancing provides access logs that capture detailed information about requests sent to your load balancer. 
